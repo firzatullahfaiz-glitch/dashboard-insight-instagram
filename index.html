@@ -97,9 +97,6 @@ button,input,select{font:inherit}
 .login-box{max-width:380px;margin:0 auto;text-align:left}
 .login-box label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:6px}
 .login-box input{width:100%;margin-bottom:14px}
-.login-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
-.login-tabs button{flex:1;background:transparent;border:0;padding:8px;font-size:12.5px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
-.login-tabs button.active{color:var(--blue);border-color:var(--blue);font-weight:700}
 
 .report-header{background:linear-gradient(135deg,#102a43,#1f6feb);color:#fff;border-radius:14px;padding:24px;margin-bottom:20px}
 .report-header h2{margin:0 0 6px;font-size:22px}
@@ -547,49 +544,39 @@ button,input,select{font:inherit}
   </main>
 </div>
 
-<!-- MODAL LOGIN PETUGAS -->
-<div id="authModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;place-items:center;padding:16px">
-  <div class="card" style="max-width:420px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,.3)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <h3 style="margin:0;color:var(--navy);font-size:18px">🔐 Login Petugas KPU</h3>
-      <button onclick="toggleAuthModal()" style="border:0;background:transparent;cursor:pointer;font-size:18px;color:var(--muted)">✕</button>
+<!-- MODAL LOGIN PETUGAS / ADMIN -->
+<div id="authModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999;place-items:center;padding:16px;backdrop-filter:blur(3px)">
+  <div class="card" style="max-width:390px;width:100%;box-shadow:0 20px 45px rgba(0,0,0,.35)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">🔐</span>
+        <h3 style="margin:0;color:var(--navy);font-size:17px">Login Petugas KPU</h3>
+      </div>
+      <button onclick="toggleAuthModal()" style="border:0;background:transparent;cursor:pointer;font-size:22px;color:var(--muted);line-height:1;padding:0 4px">&times;</button>
     </div>
     
-    <div class="login-tabs">
-      <button class="active" id="tabCodeBtn" onclick="switchLoginTab('code')">Kode Akses Cepat</button>
-      <button id="tabSupabaseBtn" onclick="switchLoginTab('supabase')">Akun Supabase</button>
-    </div>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;line-height:1.4">
+      Silakan masukkan <b>ID Pengguna</b> dan <b>Password</b> Anda untuk membuka hak akses input & kelola data insight.
+    </p>
 
-    <div id="loginCodePanel">
-      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">
-        Masukkan PIN / Kode Sandi Operator KPU untuk membuka akses input dan manajemen data.
-      </p>
+    <form id="directLoginForm" onsubmit="handleDirectLogin(event)">
       <div class="login-box">
-        <label>Kode Sandi Petugas:</label>
-        <input type="password" id="inputPasscode" placeholder="Default: admin123" style="width:100%">
-        <button class="btn primary" style="width:100%;justify-content:center;margin-top:4px" onclick="loginWithPasscode()">
-          Buka Akses Operator
-        </button>
-        <div style="margin-top:10px;font-size:11px;color:var(--muted);text-align:center">
-          <i>Kode default: <b>admin123</b> atau <b>kpuindramayu</b></i>
+        <label>ID Pengguna (Username):</label>
+        <input type="text" id="loginUsername" placeholder="Masukkan ID (faizfirzatullah)" autocomplete="username" required style="width:100%">
+        
+        <label style="margin-top:4px">Password:</label>
+        <div style="position:relative;margin-bottom:14px">
+          <input type="password" id="loginPassword" placeholder="•••••••••••••••" autocomplete="current-password" required style="width:100%;margin-bottom:0;padding-right:38px">
+          <button type="button" onclick="togglePasswordVisibility()" title="Lihat password" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;font-size:15px;color:var(--muted)">👁️</button>
         </div>
-      </div>
-    </div>
 
-    <div id="loginSupabasePanel" style="display:none">
-      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">
-        Login menggunakan akun email terdaftar di Supabase Authentication project Anda.
-      </p>
-      <div class="login-box">
-        <label>Email Petugas:</label>
-        <input type="email" id="sbEmail" placeholder="nama@kpu-indramayu.go.id" style="width:100%">
-        <label>Password:</label>
-        <input type="password" id="sbPassword" placeholder="••••••••" style="width:100%">
-        <button class="btn primary" style="width:100%;justify-content:center;margin-top:4px" onclick="loginWithSupabase()">
-          Login Supabase Auth
+        <div id="loginErrorMsg" style="display:none;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;padding:8px 10px;border-radius:7px;font-size:12px;margin-bottom:14px"></div>
+
+        <button class="btn primary" type="submit" style="width:100%;justify-content:center;padding:10px">
+          Masuk Sekarang
         </button>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 
@@ -603,7 +590,6 @@ let charts = {};
 let cachedData = [];
 let dbReady = false;
 let currentUser = null;
-const PASSCODES = ['admin123', 'kpuindramayu', 'operator123', 'kpu2024'];
 
 const fmt = n => new Intl.NumberFormat('id-ID').format(Math.round(n || 0));
 
@@ -627,7 +613,7 @@ function updateAuthUI(){
 
   if(currentUser){
     box.className = 'auth-status logged-in';
-    label.innerHTML = '<span class="status-dot"></span> Operator: ' + (currentUser.name || 'Petugas KPU');
+    label.innerHTML = '<span class="status-dot"></span> Operator: ' + (currentUser.name || 'Faiz Firzatullah');
     authBtn.innerHTML = '🚪 Logout';
     authBtn.className = 'btn danger';
     roleIndicator.className = 'pill green';
@@ -656,51 +642,63 @@ function toggleAuthModal(){
     if(confirm('Apakah Anda ingin keluar (Logout) dari akun petugas?')){
       currentUser = null;
       localStorage.removeItem('kpu_auth_session');
-      try { supabaseClient.auth.signOut(); } catch(e){}
       updateAuthUI();
-      alert('Anda telah keluar.');
+      alert('Anda telah keluar. Sekarang dalam mode Pengunjung (Hanya Lihat).');
     }
     return;
   }
   const modal = document.getElementById('authModal');
   modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
-}
-
-function switchLoginTab(tab){
-  document.getElementById('tabCodeBtn').classList.toggle('active', tab === 'code');
-  document.getElementById('tabSupabaseBtn').classList.toggle('active', tab === 'supabase');
-  document.getElementById('loginCodePanel').style.display = tab === 'code' ? 'block' : 'none';
-  document.getElementById('loginSupabasePanel').style.display = tab === 'supabase' ? 'block' : 'none';
-}
-
-function loginWithPasscode(){
-  const val = (document.getElementById('inputPasscode').value || '').trim();
-  if(PASSCODES.includes(val)){
-    currentUser = { role: 'operator', name: 'Operator KPU', email: 'operator@kpu.go.id' };
-    localStorage.setItem('kpu_auth_session', JSON.stringify(currentUser));
-    updateAuthUI();
-    toggleAuthModal();
-    alert('✓ Berhasil masuk sebagai Petugas KPU.');
-    showPage('input');
-  } else {
-    alert('Kode sandi salah! Coba: admin123');
+  if(modal.style.display === 'flex'){
+    setTimeout(() => {
+      document.getElementById('loginUsername')?.focus();
+    }, 100);
   }
 }
 
-async function loginWithSupabase(){
-  const email = document.getElementById('sbEmail').value;
-  const password = document.getElementById('sbPassword').value;
-  if(!email || !password){ alert('Harap isi email dan password.'); return; }
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if(error){
-    alert('Login Supabase gagal: ' + error.message);
-  } else {
-    currentUser = { role: 'admin', name: data.user.email.split('@')[0], email: data.user.email };
+function togglePasswordVisibility(){
+  const pwd = document.getElementById('loginPassword');
+  if(!pwd) return;
+  pwd.type = pwd.type === 'password' ? 'text' : 'password';
+}
+
+function handleDirectLogin(e){
+  if(e) e.preventDefault();
+  const usernameInput = document.getElementById('loginUsername');
+  const passwordInput = document.getElementById('loginPassword');
+  const errorEl = document.getElementById('loginErrorMsg');
+
+  const username = (usernameInput?.value || '').trim().toLowerCase();
+  const password = (passwordInput?.value || '').trim();
+
+  // Validasi ID & Password
+  const isValid = 
+    (username === 'faizfirzatullah' && password === '789456123456789') ||
+    (username === 'admin' && password === '789456123456789') ||
+    (username === 'faizfirzatullah' && password === 'admin123');
+
+  if(isValid){
+    if(errorEl) errorEl.style.display = 'none';
+    currentUser = {
+      id: 'faizfirzatullah',
+      name: 'Faiz Firzatullah',
+      role: 'admin',
+      loginTime: new Date().toISOString()
+    };
     localStorage.setItem('kpu_auth_session', JSON.stringify(currentUser));
     updateAuthUI();
     toggleAuthModal();
-    alert('✓ Berhasil masuk via Supabase Auth.');
+    if(usernameInput) usernameInput.value = '';
+    if(passwordInput) passwordInput.value = '';
+    alert('✓ Berhasil login! Selamat datang, Faiz Firzatullah. Hak akses input & edit aktif.');
     showPage('input');
+  } else {
+    if(errorEl){
+      errorEl.textContent = 'ID atau Password salah! Pastikan ID: faizfirzatullah dan Password yang benar.';
+      errorEl.style.display = 'block';
+    } else {
+      alert('ID atau Password salah!');
+    }
   }
 }
 
