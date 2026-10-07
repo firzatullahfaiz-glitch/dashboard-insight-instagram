@@ -1,296 +1,1136 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>Cookie check</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        color-scheme: light dark;
-      }
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard Insight Instagram — KPU Kabupaten Indramayu</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --navy:#102a43;
+  --navy-light:#163b5c;
+  --blue:#1f6feb;
+  --cyan:#168aad;
+  --bg:#f4f7fb;
+  --card:#fff;
+  --text:#182230;
+  --muted:#6b7280;
+  --border:#e5eaf0;
+  --green:#16805b;
+  --orange:#d97706;
+  --red:#c2410c;
+  --shadow:0 8px 24px rgba(16,42,67,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:linear-gradient(180deg,#102a43,#163b5c);color:#fff;padding:22px 16px;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;justify-content:space-between;z-index:50}
+.brand{display:flex;gap:12px;align-items:center;padding:8px 8px 20px;border-bottom:1px solid rgba(255,255,255,.12)}
+.logo{width:42px;height:42px;border-radius:12px;background:#fff;color:var(--navy);display:grid;place-items:center;font-weight:800;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.brand b{font-size:14px;display:block;letter-spacing:.5px}
+.brand small{opacity:.75;font-size:11px}
+.nav{margin-top:20px;flex:1}
+.nav button{width:100%;border:0;background:transparent;color:#dbeafe;padding:12px 14px;border-radius:10px;text-align:left;cursor:pointer;margin:4px 0;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;transition:all .15s}
+.nav button.active,.nav button:hover{background:rgba(255,255,255,.15);color:#fff}
+.sidebar-footer{border-top:1px solid rgba(255,255,255,.12);padding-top:16px}
+.auth-status{font-size:12px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.08);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.auth-status .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.auth-status.logged-in .status-dot{background:#10b981}
+.auth-status.logged-out .status-dot{background:#f59e0b}
+.main{margin-left:260px;width:calc(100% - 260px);padding:28px 32px;max-width:1600px}
+.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}
+.eyebrow{font-size:11px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.top h1{margin:4px 0;font-size:26px;color:var(--navy)}
+.top p{margin:0;color:var(--muted);font-size:13.5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--border);background:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn:hover{background:#f8fafc;border-color:#cbd5e1}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.primary:hover{background:#1a5cc8}
+.btn.success{background:#16805b;color:#fff;border-color:#16805b}
+.btn.success:hover{background:#126a4b}
+.btn.danger{color:#b42318;border-color:#fee2e2}
+.btn.danger:hover{background:#fef2f2}
+.page{display:none}
+.page.active{display:block}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.filters select,.filters input,.form input,.form select{border:1px solid var(--border);background:#fff;border-radius:8px;padding:9px 12px;outline:none;font-size:13px}
+.filters select:focus,.filters input:focus,.form input:focus,.form select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(31,111,235,.15)}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.kpi .label{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.04em}
+.kpi .value{font-size:24px;font-weight:800;margin-top:6px;color:var(--navy)}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.charts{grid-template-columns:2fr 1fr;margin-top:16px}
+.chartbox{height:320px}
+.chartbox canvas{max-height:280px}
+.two{grid-template-columns:1fr 1fr;margin-top:16px}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.section-title h2{font-size:16px;margin:0;color:var(--navy)}
+.table-wrap{overflow:auto}
+.table{width:100%;border-collapse:collapse;font-size:12.5px}
+.table th,.table td{padding:10px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.table th{font-size:11px;text-transform:uppercase;color:var(--muted);background:#fafbfd;font-weight:700}
+.table tr:hover td{background:#f8fafc}
+.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#edf4ff;color:#2458a6;font-size:11px;font-weight:700}
+.pill.green{background:#ecfdf5;color:#047857}
+.pill.amber{background:#fef3c7;color:#b45309}
+.insight{border-left:4px solid var(--blue);background:#f5f9ff;padding:12px 14px;border-radius:8px;margin:8px 0;font-size:13px;line-height:1.5}
+.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.form label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500}
+.form input,.form select{width:100%}
+.form .wide{grid-column:span 3}
+.form-actions{display:flex;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+.empty{text-align:center;color:var(--muted);padding:30px}
+.footer{text-align:center;color:var(--muted);font-size:11.5px;padding:30px 0}
+.notice{font-size:12px;background:#fff7ed;border:1px solid #fed7aa;padding:11px 14px;border-radius:9px;color:#9a3412;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.rank{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.rank:last-child{border-bottom:0}
+.rank strong{font-size:13px}
+.rank span{font-size:11.5px;color:var(--muted)}
 
-      body {
-        font-family: 'Inter', Helvetica, Arial, sans-serif;
-        background: light-dark(#F8F8F7, #191919);
-        color: light-dark(#1f1f1f, #e3e3e3);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        min-height: 100vh;
-        margin: 0;
-        padding: 20px;
-        text-align: center;
-      }
+.lock-banner{background:#fff;border:1px solid var(--border);border-radius:14px;padding:36px 24px;text-align:center;max-width:480px;margin:30px auto;box-shadow:var(--shadow)}
+.lock-icon{width:56px;height:56px;background:#eff6ff;color:var(--blue);border-radius:50%;display:grid;place-items:center;margin:0 auto 16px;font-size:24px}
+.login-box{max-width:380px;margin:0 auto;text-align:left}
+.login-box label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:6px}
+.login-box input{width:100%;margin-bottom:14px}
+.login-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.login-tabs button{flex:1;background:transparent;border:0;padding:8px;font-size:12.5px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
+.login-tabs button.active{color:var(--blue);border-color:var(--blue);font-weight:700}
 
-      .container {
-        background: light-dark(#FFFFFF, #1F1F1F);
-        padding: 32px;
-        border-radius: 16px;
-        border: 1px solid light-dark(#E2E3E4, #3E3E3E);
-        max-width: min(80%, 500px);
-        width: 100%;
-        color: light-dark(#2B2D31, #D4D4D4);
-      }
+.report-header{background:linear-gradient(135deg,#102a43,#1f6feb);color:#fff;border-radius:14px;padding:24px;margin-bottom:20px}
+.report-header h2{margin:0 0 6px;font-size:22px}
+.report-header p{margin:0;opacity:.85;font-size:13px}
+.badge-admin{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700}
 
-      h1 {
-        font-size: 20px;
-        font-weight: 500;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-        color: light-dark(#2B2D31, #D4D4D4);
-      }
+@media print {
+  body{background:#fff;color:#000}
+  .sidebar, .actions, .filters, .nav, .form-actions, #btnCetak, #btnExportBulan, .notice {display:none !important}
+  .main{margin:0 !important;width:100% !important;padding:0 !important}
+  .page{display:none !important}
+  #report.page{display:block !important}
+  .card{border:1px solid #ddd !important;box-shadow:none !important;page-break-inside:avoid}
+  .report-header{background:#102a43 !important;color:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .kpis{grid-template-columns:repeat(3,1fr) !important}
+}
 
-      p {
-        font-size: 14px;
-        color: light-dark(#2B2D31, #D4D4D4);
-        line-height: 21px;
-        margin: 0 0 1.5rem 0;
-      }
-
-      .icon {
-        margin-bottom: 1rem;
-        line-height: 0;
-      }
-
-      .button-container {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 2rem;
-      }
-
-      button {
-        background-color: light-dark(#fff, #323232);
-        color: light-dark(#2B2D31, #FCFCFC);
-        border: 1px solid light-dark(#E2E3E4, #3E3E3E);
-        border-radius: 12px;
-        padding: 8px 12px;
-        font-size: 14px;
-        line-height: 21px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        font-weight: 400;
-        font-family: 'Inter', Helvetica, Arial, sans-serif;
-        width: 100%;
-      }
-
-      button:hover {
-        background-color: light-dark(#EAEAEB, #424242);
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      /* Loading Spinner Animation */
-      .spinner {
-        margin: 0 auto 1.5rem auto;
-        width: 40px;
-        height: 40px;
-        border: 4px solid light-dark(#f0f0f0, #262626);
-        border-top: 4px solid light-dark(#076eff, #87a9ff); /* Blue color */
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      .logo {
-        border-radius: 10px;
-        display: block;
-        margin: 0 auto 2rem auto;
-      }
-
-      .logo.hidden {
-        display: none;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <img
-        class="logo"
-        src="https://www.gstatic.com/images/branding/productlogos/ai_studio/v1/web-512dp/logo_ai_studio_color_1x_web_512dp.png"
-        alt="AI Studio Logo"
-        width="256"
-        height="256"
-      />
-      <div class="spinner"></div>
-      <div id="error-ui" class="hidden">
-        <div class="icon">
-          <svg
-            version="1.1"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="48px"
-            height="48px"
-            fill="#D73A49"
-          >
-            <path
-              d="M12,2C6.486,2,2,6.486,2,12s4.486,10,10,10s10-4.486,10-10S17.514,2,12,2z M13,17h-2v-2h2V17z M13,13h-2V7h2V13z"
-            />
-          </svg>
+@media(max-width:1200px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1050px){.charts,.two{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr 1fr}.form .wide{grid-column:span 2}}
+@media(max-width:760px){
+  .sidebar{position:static;width:100%;height:auto}
+  .app{display:block}
+  .main{margin:0;width:100%;padding:16px}
+  .nav{display:flex;overflow:auto;gap:5px}
+  .nav button{white-space:nowrap;width:auto}
+  .brand{border:0;padding-bottom:10px}
+  .top{display:block}
+  .actions{margin-top:14px}
+  .kpis{grid-template-columns:1fr 1fr}
+  .formgrid{grid-template-columns:1fr}
+  .form .wide{grid-column:span 1}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="logo">KPU</div>
+        <div>
+          <b>KPU INDRAMAYU</b>
+          <small>Instagram Insight</small>
         </div>
-        <div id="stepOne" class="text-container">
-          <h1>Action required to load your app</h1>
-          <p>
-            It looks like your browser is blocking a required security cookie, which is common on
-            older versions of iOS and Safari.
-          </p>
-          <div class="button-container">
-            <button id="authInSeparateWindowButton" onclick="redirectToReturnUrl(true)">Authenticate in new window</button>
+      </div>
+      <div class="nav">
+        <button class="active" data-page="dashboard">▣ Dashboard</button>
+        <button data-page="input">＋ Input Konten</button>
+        <button data-page="data">☷ Data 30 Hari</button>
+        <button data-page="analysis">◈ Analisis</button>
+        <button data-page="report">📋 Rekap & Unduh Bulanan</button>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="auth-status" id="authStatusBox">
+        <span id="authStatusLabel"><span class="status-dot"></span> Publik (Hanya Lihat)</span>
+      </div>
+      <button class="btn" style="width:100%;justify-content:center" id="authBtn" onclick="toggleAuthModal()">
+        🔐 Login Petugas
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div>
+        <div class="eyebrow">Social Media Performance</div>
+        <h1 id="pageTitle">Dashboard Insight Instagram</h1>
+        <p>Analisis performa konten Instagram KPU Kabupaten Indramayu.</p>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="exportCSV()">📥 Export CSV Semua</button>
+        <span id="adminOnlyButtons" style="display:none;gap:8px">
+          <button class="btn" onclick="seedData()">Data Contoh</button>
+          <button class="btn danger" onclick="clearData()">Reset Data</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="notice" id="dbNotice">
+      <span id="dbNoticeText">Menghubungkan ke database online Supabase...</span>
+      <span id="roleIndicator" class="pill">Pengunjung</span>
+    </div>
+
+    <!-- HALAMAN DASHBOARD -->
+    <section id="dashboard" class="page active">
+      <div class="filters">
+        <select id="range" onchange="renderAll()">
+          <option value="30">30 hari terakhir</option>
+          <option value="14">14 hari terakhir</option>
+          <option value="7">7 hari terakhir</option>
+          <option value="all">Semua data</option>
+        </select>
+        <select id="catFilter" onchange="renderAll()">
+          <option value="all">Semua kategori</option>
+          <option>Sosialisasi</option>
+          <option>Berita Kegiatan</option>
+          <option>Pengumuman</option>
+          <option>Edukasi</option>
+          <option>Lainnya</option>
+        </select>
+      </div>
+
+      <div class="grid kpis">
+        <div class="card kpi">
+          <div class="label">TOTAL VIEWERS</div>
+          <div class="value" id="kView">0</div>
+          <div class="sub">Followers + non-followers</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">TOTAL INTERACTIONS</div>
+          <div class="value" id="kInt">0</div>
+          <div class="sub">Semua interaksi</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">POST INTERACTIONS</div>
+          <div class="value" id="kPost">0</div>
+          <div class="sub">Like + comment + share + save</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">PROFILE VISITS</div>
+          <div class="value" id="kVisit">0</div>
+          <div class="sub">Kunjungan profil</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">NEW FOLLOWERS</div>
+          <div class="value" id="kFollowers" style="color:#16805b">0</div>
+          <div class="sub">Penambahan followers</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">ENGAGEMENT RATE</div>
+          <div class="value" id="kER">0%</div>
+          <div class="sub">Interactions / viewers</div>
+        </div>
+      </div>
+
+      <div class="grid charts">
+        <div class="card chartbox">
+          <div class="section-title"><h2>Tren Viewers & Interactions</h2></div>
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="card chartbox">
+          <div class="section-title"><h2>Komposisi Audiens</h2></div>
+          <canvas id="audienceChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <div class="section-title"><h2>Performa per Kategori</h2></div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Kategori</th>
+                  <th>Konten</th>
+                  <th>Viewers</th>
+                  <th>Interactions</th>
+                  <th>New Follower</th>
+                  <th>ER</th>
+                </tr>
+              </thead>
+              <tbody id="catTable"></tbody>
+            </table>
           </div>
         </div>
-        <div id="stepTwo" class="text-container hidden">
-          <h1>Action required to load your app</h1>
-          <p>
-            It looks like your browser is blocking a required security cookie, which is common on
-            older versions of iOS and Safari.
-          </p>
-          <div class="button-container">
-            <button id="interactButton" onclick="redirectToReturnUrl(false)">Close and continue</button>
-          </div>
+        <div class="card">
+          <div class="section-title"><h2>Insight Otomatis</h2></div>
+          <div id="insights"></div>
         </div>
-        <div id="stepThree" class="text-container hidden">
-          <h1>Almost there!</h1>
-          <p>
-            Grant permission for the required security cookie below.
-          </p>
-          <div class="button-container">
-            <button id="grantPermissionButton" onclick="grantStorageAccess()">Grant permission</button>
+      </div>
+    </section>
+
+    <!-- HALAMAN INPUT KONTEN -->
+    <section id="input" class="page">
+      <div id="inputLockedView" class="lock-banner">
+        <div class="lock-icon">🔒</div>
+        <h2 style="margin:0 0 8px;font-size:20px;color:var(--navy)">Halaman Terproteksi</h2>
+        <p style="color:var(--muted);font-size:13.5px;margin:0 0 20px;line-height:1.5">
+          Untuk menjaga validitas data, Anda harus masuk sebagai petugas operator/admin KPU sebelum dapat menambahkan data.
+        </p>
+        <button class="btn primary" onclick="toggleAuthModal()" style="padding:10px 20px">
+          Masuk Sebagai Petugas
+        </button>
+      </div>
+
+      <div id="inputFormView" class="card" style="display:none">
+        <div class="section-title">
+          <div>
+            <h2>Input Insight Konten</h2>
+            <small style="color:var(--muted)">Mode Operator: Data yang diinput akan tersimpan di Supabase.</small>
+          </div>
+          <span class="badge-admin">✓ Terotentikasi</span>
+        </div>
+        <form class="form" id="entryForm">
+          <div class="formgrid">
+            <div>
+              <label>Tanggal</label>
+              <input type="date" id="date" required>
+            </div>
+            <div>
+              <label>Kategori</label>
+              <select id="category">
+                <option>Sosialisasi</option>
+                <option>Berita Kegiatan</option>
+                <option>Pengumuman</option>
+                <option>Edukasi</option>
+                <option>Lainnya</option>
+              </select>
+            </div>
+            <div>
+              <label>Judul / Topik</label>
+              <input id="title" placeholder="Contoh: Sosialisasi Pemilih Pemula" required>
+            </div>
+            <div>
+              <label>Viewers Followers</label>
+              <input type="number" id="vf" min="0" value="0">
+            </div>
+            <div>
+              <label>Viewers Non-Followers</label>
+              <input type="number" id="vn" min="0" value="0">
+            </div>
+            <div>
+              <label>Interactions Followers</label>
+              <input type="number" id="if" min="0" value="0">
+            </div>
+            <div>
+              <label>Interactions Non-Followers</label>
+              <input type="number" id="in" min="0" value="0">
+            </div>
+            <div>
+              <label>Likes</label>
+              <input type="number" id="likes" min="0" value="0">
+            </div>
+            <div>
+              <label>Comments</label>
+              <input type="number" id="comments" min="0" value="0">
+            </div>
+            <div>
+              <label>Shares</label>
+              <input type="number" id="shares" min="0" value="0">
+            </div>
+            <div>
+              <label>Saves</label>
+              <input type="number" id="saves" min="0" value="0">
+            </div>
+            <div>
+              <label>Profile Visits</label>
+              <input type="number" id="visits" min="0" value="0">
+            </div>
+            <div style="background:#f0fdf4;padding:8px 10px;border-radius:8px;border:1px solid #bbf7d0">
+              <label style="color:#166534;font-weight:700">★ New Followers (Followers Baru)</label>
+              <input type="number" id="new_followers" min="0" value="0" style="border-color:#86efac;font-weight:700;color:#14532d">
+              <small style="font-size:10.5px;color:#15803d">Jumlah follower baru yang didapat</small>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" type="submit">💾 Simpan Data ke Supabase</button>
+            <button class="btn" type="reset">Bersihkan Form</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- HALAMAN DATA TABEL -->
+    <section id="data" class="page">
+      <div class="card">
+        <div class="section-title">
+          <h2>Data Insight 30 Hari</h2>
+          <span class="pill" id="countPill">0 data</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Kategori</th>
+                <th>Konten</th>
+                <th>Viewers F</th>
+                <th>Viewers NF</th>
+                <th>Total Viewers</th>
+                <th>Interactions</th>
+                <th>Likes</th>
+                <th>Comments</th>
+                <th>Shares</th>
+                <th>Saves</th>
+                <th>Visits</th>
+                <th style="color:#16805b">New Followers</th>
+                <th>ER</th>
+                <th id="thAksi">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- HALAMAN ANALISIS -->
+    <section id="analysis" class="page">
+      <div class="grid two">
+        <div class="card">
+          <div class="section-title"><h2>Top 10 Konten berdasarkan Interactions</h2></div>
+          <div id="topContent"></div>
+        </div>
+        <div class="card">
+          <div class="section-title"><h2>Analisis Audiens & Followers</h2></div>
+          <div id="audienceInsights"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="section-title"><h2>Rekomendasi Pengelolaan Konten</h2></div>
+        <div id="recommendations"></div>
+      </div>
+    </section>
+
+    <!-- FITUR: REKAP BULANAN -->
+    <section id="report" class="page">
+      <div class="card report-header">
+        <h2>📋 Rekap Data & Analisis Bulanan</h2>
+        <p>Pilih periode bulan dan tahun untuk ringkasan evaluasi, unduh CSV, atau cetak Laporan Resmi KPU Indramayu.</p>
+      </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <label style="font-size:13px;font-weight:600;color:var(--navy)">Pilih Periode:</label>
+            <select id="reportMonthSelect" onchange="renderMonthlyReport()" style="min-width:180px;font-weight:600"></select>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn success" id="btnExportBulan" onclick="exportMonthlyCSV()">
+              📥 Unduh Rekap CSV Bulan Ini
+            </button>
+            <button class="btn primary" id="btnCetak" onclick="window.print()">
+              🖨️ Cetak / Simpan PDF Laporan
+            </button>
           </div>
         </div>
       </div>
+
+      <div id="printableReport">
+        <div class="card" style="border:2px solid var(--border);margin-bottom:16px">
+          <div style="text-align:center;border-bottom:2px solid var(--navy);padding-bottom:14px;margin-bottom:16px">
+            <h3 style="margin:0 0 4px;color:var(--navy);font-size:18px;letter-spacing:1px">KOMISI PEMILIHAN UMUM KABUPATEN INDRAMAYU</h3>
+            <div style="font-size:14px;font-weight:700;color:var(--blue);margin-bottom:4px" id="reportTitlePeriod">
+              LAPORAN KINERJA MEDIA SOSIAL INSTAGRAM — PERIODE BULAN
+            </div>
+            <small style="color:var(--muted)">Dokumen Rekapitulasi Insight, Jangkauan, dan Interaksi Publik</small>
+          </div>
+
+          <div class="grid kpis" style="margin-bottom:16px">
+            <div class="card kpi" style="background:#f8fafc">
+              <div class="label">TOTAL POSTINGAN</div>
+              <div class="value" id="mPostCount">0</div>
+              <div class="sub">Konten diterbitkan</div>
+            </div>
+            <div class="card kpi" style="background:#f8fafc">
+              <div class="label">TOTAL VIEWERS</div>
+              <div class="value" id="mViewers">0</div>
+              <div class="sub">Jangkauan akun</div>
+            </div>
+            <div class="card kpi" style="background:#f8fafc">
+              <div class="label">TOTAL INTERACTIONS</div>
+              <div class="value" id="mInteractions">0</div>
+              <div class="sub">Likes, comments, shares</div>
+            </div>
+            <div class="card kpi" style="background:#f8fafc">
+              <div class="label">NEW FOLLOWERS</div>
+              <div class="value" id="mFollowers" style="color:#16805b">0</div>
+              <div class="sub">Pertumbuhan audiens</div>
+            </div>
+            <div class="card kpi" style="background:#f8fafc">
+              <div class="label">PROFILE VISITS</div>
+              <div class="value" id="mVisits">0</div>
+              <div class="sub">Kunjungan profil</div>
+            </div>
+            <div class="card kpi" style="background:#f8fafc">
+              <div class="label">RATA-RATA ER</div>
+              <div class="value" id="mER">0%</div>
+              <div class="sub">Engagement Rate</div>
+            </div>
+          </div>
+
+          <div class="section-title"><h3>Ringkasan per Kategori (Bulan Ini)</h3></div>
+          <div class="table-wrap" style="margin-bottom:16px">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Kategori</th>
+                  <th>Jumlah Konten</th>
+                  <th>Total Viewers</th>
+                  <th>Total Interaksi</th>
+                  <th>New Followers</th>
+                  <th>Rata-rata ER</th>
+                </tr>
+              </thead>
+              <tbody id="monthlyCatTable"></tbody>
+            </table>
+          </div>
+
+          <div class="section-title"><h3>Top 5 Konten dengan Interaksi Tertinggi</h3></div>
+          <div id="monthlyTopList" style="margin-bottom:18px"></div>
+
+          <div class="section-title"><h3>Daftar Seluruh Konten Bulan Ini</h3></div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Tgl</th>
+                  <th>Kategori</th>
+                  <th>Judul Konten</th>
+                  <th>Viewers</th>
+                  <th>Interaksi</th>
+                  <th>Likes</th>
+                  <th>Comments</th>
+                  <th>Shares</th>
+                  <th>New Followers</th>
+                  <th>ER</th>
+                </tr>
+              </thead>
+              <tbody id="monthlyFullTable"></tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:24px;padding-top:16px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:flex-end">
+            <div style="font-size:11.5px;color:var(--muted)">
+              <i>Laporan diekstrak otomatis dari Database Insight Instagram KPU Indramayu.</i><br>
+              Waktu cetak: <span id="reportPrintTime"></span>
+            </div>
+            <div style="text-align:center;font-size:12px;min-width:200px">
+              <div>Indramayu, <span id="reportSignDate"></span></div>
+              <div style="font-weight:600;margin-top:4px">Pengelola Media Sosial</div>
+              <div style="height:50px"></div>
+              <div style="font-weight:700;text-decoration:underline">Subbag Teknis & Hupmas KPU</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Dashboard Insight Instagram • KPU Kabupaten Indramayu • Data tersimpan di database online Supabase.
     </div>
-    <script>
-      const AUTH_FLOW_TEST_COOKIE_NAME = '__SECURE-aistudio_auth_flow_may_set_cookies';
-      const COOKIE_VALUE = 'true';
+  </main>
+</div>
 
-      function getCookie(name) {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          let cookie = cookies[i].trim();
-          if (cookie.startsWith(name + '=')) {
-            return cookie.substring(name.length + 1);
-          }
-        }
-        return null;
-      }
+<!-- MODAL LOGIN PETUGAS -->
+<div id="authModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;place-items:center;padding:16px">
+  <div class="card" style="max-width:420px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="margin:0;color:var(--navy);font-size:18px">🔐 Login Petugas KPU</h3>
+      <button onclick="toggleAuthModal()" style="border:0;background:transparent;cursor:pointer;font-size:18px;color:var(--muted)">✕</button>
+    </div>
+    
+    <div class="login-tabs">
+      <button class="active" id="tabCodeBtn" onclick="switchLoginTab('code')">Kode Akses Cepat</button>
+      <button id="tabSupabaseBtn" onclick="switchLoginTab('supabase')">Akun Supabase</button>
+    </div>
 
-      function setAuthFlowTestCookie() {
-        // Set the cookie's TTL to 1 minute. This is a short lived cookie because it is only used
-        // when the user does not have an auth token or their auth token needs to be reset.
-        // Making this cookie too long-lived allows the user to get into a state where they can't
-        // mint a new auth token.
-        document.cookie = `${AUTH_FLOW_TEST_COOKIE_NAME}=${COOKIE_VALUE}; Path=/; Secure; SameSite=None; Domain=${window.location.hostname}; Partitioned; Max-Age=60;`;
-      }
+    <div id="loginCodePanel">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">
+        Masukkan PIN / Kode Sandi Operator KPU untuk membuka akses input dan manajemen data.
+      </p>
+      <div class="login-box">
+        <label>Kode Sandi Petugas:</label>
+        <input type="password" id="inputPasscode" placeholder="Default: admin123" style="width:100%">
+        <button class="btn primary" style="width:100%;justify-content:center;margin-top:4px" onclick="loginWithPasscode()">
+          Buka Akses Operator
+        </button>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted);text-align:center">
+          <i>Kode default: <b>admin123</b> atau <b>kpuindramayu</b></i>
+        </div>
+      </div>
+    </div>
 
-      /**
-       * Returns true if the test cookie is set, false otherwise.
-       */
-      function authFlowTestCookieIsSet() {
-        return getCookie(AUTH_FLOW_TEST_COOKIE_NAME) === COOKIE_VALUE;
-      }
+    <div id="loginSupabasePanel" style="display:none">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">
+        Login menggunakan akun email terdaftar di Supabase Authentication project Anda.
+      </p>
+      <div class="login-box">
+        <label>Email Petugas:</label>
+        <input type="email" id="sbEmail" placeholder="nama@kpu-indramayu.go.id" style="width:100%">
+        <label>Password:</label>
+        <input type="password" id="sbPassword" placeholder="••••••••" style="width:100%">
+        <button class="btn primary" style="width:100%;justify-content:center;margin-top:4px" onclick="loginWithSupabase()">
+          Login Supabase Auth
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
-      /**
-       * Redirects to the return url. If autoClose is true, then the return url will be opened in a
-       * new window, and it will be closed automatically when the page loads.
-       * Options:
-       *   storageAccessGranted: if true, appends __storage_access_granted=1 to
-       *   the return url so the Lua auth script can set the test cookie
-       *   server-side (needed for Safari/iOS where document.cookie is blocked).
-       */
-      async function redirectToReturnUrl(autoClose, storageAccessGranted = false) {
-        const initialReturnUrlStr = new URLSearchParams(window.location.search).get('return_url');
-        const returnUrl = initialReturnUrlStr ? new URL(initialReturnUrlStr) : null;
+<script>
+const SUPABASE_URL = 'https://vijidcwqrnesdckhevdm.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_1-v2sPSyEn5d_iGOuaHGMA_fDd6gNW8';
 
-        // Prevent potentially malicious URLs from being used
-        if (returnUrl.protocol.toLowerCase() === 'javascript:') {
-          console.error('Potentially malicious return URL blocked');
-          return;
-        }
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-        if (storageAccessGranted) {
-          returnUrl.searchParams.set('__storage_access_granted', '1');
-        }
+let charts = {};
+let cachedData = [];
+let dbReady = false;
+let currentUser = null;
+const PASSCODES = ['admin123', 'kpuindramayu', 'operator123', 'kpu2024'];
 
-        if (autoClose) {
-          returnUrl.searchParams.set('__auto_close', '1');
-          const url = new URL(window.location.href);
-          url.searchParams.set('return_url', returnUrl.toString());
-          // Land on the cookie check page first, so the user can interact with it before proceeding
-          // to the return url where cookies can be set.
-          window.open(url.toString(), '_blank');
-          const hasAccess = await document.hasStorageAccess();
-          document.querySelector('#stepOne').classList.add('hidden');
-          if (!hasAccess) {
-            document.querySelector('#stepThree').classList.remove('hidden');
-          } else {
-            window.location.reload();
-          }
-        } else {
-          window.location.href = returnUrl.toString();
-        }
-      }
+const fmt = n => new Intl.NumberFormat('id-ID').format(Math.round(n || 0));
 
-      /**
-       * Grants the browser permission to set cookies. If successful, then it redirects to the
-       * return url.
-       */
-      async function grantStorageAccess() {
-        try {
-          await document.requestStorageAccess();
-          // Recent Safari/iOS versions block document.cookie entirely in
-          // cross-site iframes, even after requestStorageAccess(). Only
-          // server-side Set-Cookie headers work. Signal to the Lua auth script
-          // via query param so it can set the test cookie server-side.
-          redirectToReturnUrl(false, /* storageAccessGranted= */ true);
-        } catch (err) {
-          console.log('error after button click: ', err);
-        }
-      }
+function checkAuth(){
+  const saved = localStorage.getItem('kpu_auth_session');
+  if(saved){
+    try { currentUser = JSON.parse(saved); } catch(e){ currentUser = null; }
+  }
+  updateAuthUI();
+}
 
-      /**
-       * Verifies that the browser can set cookies. If it can, then it redirects to the return url.
-       * If it can't, then it shows the error UI.
-       */
-      function verifyCanSetCookies() {
-        setAuthFlowTestCookie();
-        if (authFlowTestCookieIsSet()) {
-          // Check if we are on the auto-close flow, and if so show the interact button.
-          const returnUrl = new URLSearchParams(window.location.search).get('return_url');
-          const autoClose = new URL(returnUrl).searchParams.has('__auto_close');
-          if (autoClose) {
-            document.querySelector('#stepOne').classList.add('hidden');
-            document.querySelector('#stepTwo').classList.remove('hidden');
-          } else {
-            redirectToReturnUrl(false);
-            return;
-          }
-        }
-        // The cookie could not be set, so initiate the recovery flow.
-        document.querySelector('.logo').classList.add('hidden');
-        document.querySelector('.spinner').classList.add('hidden');
-        document.querySelector('#error-ui').classList.remove('hidden');
-      }
+function updateAuthUI(){
+  const box = document.getElementById('authStatusBox');
+  const label = document.getElementById('authStatusLabel');
+  const authBtn = document.getElementById('authBtn');
+  const roleIndicator = document.getElementById('roleIndicator');
+  const adminButtons = document.getElementById('adminOnlyButtons');
+  const inputLocked = document.getElementById('inputLockedView');
+  const inputForm = document.getElementById('inputFormView');
+  const thAksi = document.getElementById('thAksi');
 
-      // Start the cookie verification process.
-      verifyCanSetCookies();
-    </script>
-  </body>
+  if(currentUser){
+    box.className = 'auth-status logged-in';
+    label.innerHTML = '<span class="status-dot"></span> Operator: ' + (currentUser.name || 'Petugas KPU');
+    authBtn.innerHTML = '🚪 Logout';
+    authBtn.className = 'btn danger';
+    roleIndicator.className = 'pill green';
+    roleIndicator.textContent = 'Mode Operator';
+    adminButtons.style.display = 'flex';
+    inputLocked.style.display = 'none';
+    inputForm.style.display = 'block';
+    if(thAksi) thAksi.style.display = 'table-cell';
+  } else {
+    box.className = 'auth-status logged-out';
+    label.innerHTML = '<span class="status-dot"></span> Publik (Hanya Lihat)';
+    authBtn.innerHTML = '🔐 Login Petugas';
+    authBtn.className = 'btn';
+    roleIndicator.className = 'pill';
+    roleIndicator.textContent = 'Pengunjung (Read Only)';
+    adminButtons.style.display = 'none';
+    inputLocked.style.display = 'block';
+    inputForm.style.display = 'none';
+    if(thAksi) thAksi.style.display = 'none';
+  }
+  renderData();
+}
+
+function toggleAuthModal(){
+  if(currentUser){
+    if(confirm('Apakah Anda ingin keluar (Logout) dari akun petugas?')){
+      currentUser = null;
+      localStorage.removeItem('kpu_auth_session');
+      try { supabaseClient.auth.signOut(); } catch(e){}
+      updateAuthUI();
+      alert('Anda telah keluar.');
+    }
+    return;
+  }
+  const modal = document.getElementById('authModal');
+  modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+}
+
+function switchLoginTab(tab){
+  document.getElementById('tabCodeBtn').classList.toggle('active', tab === 'code');
+  document.getElementById('tabSupabaseBtn').classList.toggle('active', tab === 'supabase');
+  document.getElementById('loginCodePanel').style.display = tab === 'code' ? 'block' : 'none';
+  document.getElementById('loginSupabasePanel').style.display = tab === 'supabase' ? 'block' : 'none';
+}
+
+function loginWithPasscode(){
+  const val = (document.getElementById('inputPasscode').value || '').trim();
+  if(PASSCODES.includes(val)){
+    currentUser = { role: 'operator', name: 'Operator KPU', email: 'operator@kpu.go.id' };
+    localStorage.setItem('kpu_auth_session', JSON.stringify(currentUser));
+    updateAuthUI();
+    toggleAuthModal();
+    alert('✓ Berhasil masuk sebagai Petugas KPU.');
+    showPage('input');
+  } else {
+    alert('Kode sandi salah! Coba: admin123');
+  }
+}
+
+async function loginWithSupabase(){
+  const email = document.getElementById('sbEmail').value;
+  const password = document.getElementById('sbPassword').value;
+  if(!email || !password){ alert('Harap isi email dan password.'); return; }
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(error){
+    alert('Login Supabase gagal: ' + error.message);
+  } else {
+    currentUser = { role: 'admin', name: data.user.email.split('@')[0], email: data.user.email };
+    localStorage.setItem('kpu_auth_session', JSON.stringify(currentUser));
+    updateAuthUI();
+    toggleAuthModal();
+    alert('✓ Berhasil masuk via Supabase Auth.');
+    showPage('input');
+  }
+}
+
+function setDbNotice(message, type='normal'){
+  const el = document.getElementById('dbNotice');
+  const textEl = document.getElementById('dbNoticeText');
+  if(!el || !textEl) return;
+  textEl.textContent = message;
+  if(type === 'error'){
+    el.style.background = '#fef2f2'; el.style.borderColor = '#fecaca'; el.style.color = '#991b1b';
+  } else if(type === 'success'){
+    el.style.background = '#ecfdf5'; el.style.borderColor = '#a7f3d0'; el.style.color = '#047857';
+  } else {
+    el.style.background = '#fff7ed'; el.style.borderColor = '#fed7aa'; el.style.color = '#9a3412';
+  }
+}
+
+function normalizeRow(x){
+  return {
+    id: x.id,
+    date: x.tanggal,
+    category: x.kategori,
+    title: x.judul,
+    vf: Number(x.viewers_followers || 0),
+    vn: Number(x.viewers_non_followers || 0),
+    if: Number(x.interactions_followers || 0),
+    in: Number(x.interactions_non_followers || 0),
+    likes: Number(x.likes || 0),
+    comments: Number(x.comments || 0),
+    shares: Number(x.shares || 0),
+    saves: Number(x.saves || 0),
+    visits: Number(x.profile_visits || 0),
+    new_followers: Number(x.new_followers || 0)
+  };
+}
+
+function toDbRow(x){
+  const row = {
+    tanggal: x.date,
+    judul: x.title,
+    kategori: x.category,
+    viewers_followers: Number(x.vf || 0),
+    viewers_non_followers: Number(x.vn || 0),
+    interactions_followers: Number(x.if || 0),
+    interactions_non_followers: Number(x.in || 0),
+    likes: Number(x.likes || 0),
+    comments: Number(x.comments || 0),
+    shares: Number(x.shares || 0),
+    saves: Number(x.saves || 0),
+    profile_visits: Number(x.visits || 0)
+  };
+  if(x.new_followers !== undefined){ row.new_followers = Number(x.new_followers || 0); }
+  return row;
+}
+
+async function loadData(){
+  setDbNotice('Mengambil data dari database online Supabase...');
+  const { data, error } = await supabaseClient
+    .from('instagram_insights')
+    .select('*')
+    .order('tanggal', { ascending: true });
+
+  if(error){
+    console.error(error);
+    dbReady = false;
+    setDbNotice('Gagal terhubung ke Supabase: ' + error.message, 'error');
+    cachedData = [];
+    renderAll();
+    return [];
+  }
+
+  cachedData = (data || []).map(normalizeRow);
+  dbReady = true;
+  setDbNotice('✓ Terhubung ke database online Supabase. Data sinkron.', 'success');
+  populateMonthOptions();
+  renderAll();
+  return cachedData;
+}
+
+function getData(){ return [...cachedData]; }
+
+function daysAgo(n){
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0,10);
+}
+
+function filtered(){
+  let d = getData().sort((a,b)=>a.date.localeCompare(b.date));
+  const r = document.getElementById('range')?.value || '30';
+  const c = document.getElementById('catFilter')?.value || 'all';
+  if(r !== 'all'){ d = d.filter(x => x.date >= daysAgo(Number(r)-1)); }
+  if(c !== 'all') d = d.filter(x => x.category === c);
+  return d;
+}
+
+function totals(d){
+  return d.reduce((a,x)=>{
+    a.v += +x.vf + +x.vn;
+    a.i += +x.if + +x.in;
+    a.p += +x.likes + +x.comments + +x.shares + +x.saves;
+    a.vis += +x.visits;
+    a.vf += +x.vf;
+    a.vn += +x.vn;
+    a.fol += +x.new_followers;
+    return a;
+  },{v:0,i:0,p:0,vis:0,vf:0,vn:0,fol:0});
+}
+
+function renderAll(){
+  const d = filtered(), t = totals(d);
+  document.getElementById('kView').textContent = fmt(t.v);
+  document.getElementById('kInt').textContent = fmt(t.i);
+  document.getElementById('kPost').textContent = fmt(t.p);
+  document.getElementById('kVisit').textContent = fmt(t.vis);
+  document.getElementById('kFollowers').textContent = fmt(t.fol);
+  document.getElementById('kER').textContent = (t.v ? (t.i/t.v*100).toFixed(2) : 0) + '%';
+  renderCharts(d,t);
+  renderCategory(d);
+  renderInsights(d,t);
+  renderData();
+  renderAnalysis(d,t);
+  renderMonthlyReport();
+}
+
+function destroy(k){ if(charts[k]) charts[k].destroy(); }
+
+function renderCharts(d,t){
+  destroy('trend');
+  const map = {};
+  d.forEach(x=>{
+    map[x.date] ??= {v:0,i:0};
+    map[x.date].v += +x.vf + +x.vn;
+    map[x.date].i += +x.if + +x.in;
+  });
+  const labels = Object.keys(map);
+  const ctx = document.getElementById('trendChart');
+  if(!ctx) return;
+  charts.trend = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Viewers',data:labels.map(x=>map[x].v),tension:.3,borderWidth:2,borderColor:'#1f6feb',backgroundColor:'rgba(31,111,235,0.1)'},
+        {label:'Interactions',data:labels.map(x=>map[x].i),tension:.3,borderWidth:2,borderColor:'#16805b',backgroundColor:'rgba(22,128,91,0.1)'}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}
+  });
+
+  destroy('aud');
+  const audEl = document.getElementById('audienceChart');
+  if(!audEl) return;
+  charts.aud = new Chart(audEl,{
+    type:'doughnut',
+    data:{labels:['Followers','Non-Followers'],datasets:[{data:[t.vf,t.vn],backgroundColor:['#1f6feb','#60a5fa'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+  });
+}
+
+function renderCategory(d){
+  const m = {};
+  d.forEach(x=>{
+    const k=x.category;
+    m[k] ??= {n:0,v:0,i:0,fol:0};
+    m[k].n++; m[k].v += +x.vf + +x.vn; m[k].i += +x.if + +x.in; m[k].fol += +x.new_followers;
+  });
+  const el = document.getElementById('catTable');
+  if(!el) return;
+  el.innerHTML = Object.entries(m).sort((a,b)=>b[1].i-a[1].i).map(([k,v])=>`<tr>
+    <td><span class="pill">${escapeHtml(k)}</span></td>
+    <td>${v.n}</td>
+    <td>${fmt(v.v)}</td>
+    <td>${fmt(v.i)}</td>
+    <td><b style="color:#16805b">+${fmt(v.fol)}</b></td>
+    <td>${v.v?(v.i/v.v*100).toFixed(2):0}%</td>
+  </tr>`).join('') || '<tr><td colspan="6" class="empty">Belum ada data.</td></tr>';
+}
+
+function renderInsights(d,t){
+  const by = d.reduce((a,x)=>{
+    a[x.category] ??= {v:0,i:0,n:0,fol:0};
+    a[x.category].v += +x.vf + +x.vn; a[x.category].i += +x.if + +x.in; a[x.category].fol += +x.new_followers; a[x.category].n++;
+    return a;
+  },{});
+  const top = Object.entries(by).sort((a,b)=>b[1].i-b[1].i)[0];
+  const nf = t.v ? (t.vn/t.v*100) : 0;
+  let arr = [];
+  if(top) arr.push(`Kategori <b>${escapeHtml(top[0])}</b> menyumbang interaksi terbesar dengan <b>${fmt(top[1].i)}</b> interaksi.`);
+  if(t.fol > 0) arr.push(`Total <b>${fmt(t.fol)}</b> New Followers didapatkan selama periode ini.`);
+  arr.push(`Porsi viewers non-followers mencapai <b>${nf.toFixed(1)}%</b>.`);
+  if(t.v && t.i/t.v >= .05) arr.push(`Engagement rate <b>${(t.i/t.v*100).toFixed(2)}%</b>, menunjukkan respons audiens yang baik.`);
+  const el = document.getElementById('insights');
+  if(el) el.innerHTML = arr.map(x=>`<div class="insight">${x}</div>`).join('') || '<div class="empty">Masukkan data untuk melihat insight.</div>';
+}
+
+function renderData(){
+  const all = getData().sort((a,b)=>b.date.localeCompare(a.date));
+  const pill = document.getElementById('countPill');
+  if(pill) pill.textContent = all.length + ' data';
+  const tbody = document.getElementById('dataTable');
+  if(!tbody) return;
+  const isAuth = !!currentUser;
+  tbody.innerHTML = all.map(x=>{
+    const v=+x.vf + +x.vn, ii=+x.if + +x.in, er=v ? ii/v*100 : 0;
+    return `<tr>
+      <td>${escapeHtml(x.date)}</td>
+      <td><span class="pill">${escapeHtml(x.category)}</span></td>
+      <td>${escapeHtml(x.title)}</td>
+      <td>${fmt(x.vf)}</td><td>${fmt(x.vn)}</td><td><b>${fmt(v)}</b></td><td><b>${fmt(ii)}</b></td>
+      <td>${fmt(x.likes)}</td><td>${fmt(x.comments)}</td><td>${fmt(x.shares)}</td><td>${fmt(x.saves)}</td><td>${fmt(x.visits)}</td>
+      <td><span class="pill green">+${fmt(x.new_followers)}</span></td>
+      <td>${er.toFixed(2)}%</td>
+      ${isAuth ? `<td><button class="btn danger" style="padding:4px 8px;font-size:11px" onclick="deleteRow(${x.id})">Hapus</button></td>` : ''}
+    </tr>`;
+  }).join('') || `<tr><td colspan="${isAuth ? 15 : 14}" class="empty">Belum ada data tersimpan.</td></tr>`;
+}
+
+function renderAnalysis(d,t){
+  const top=[...d].sort((a,b)=>(+b.if + +b.in)-(+a.if + +a.in)).slice(0,10);
+  const topEl = document.getElementById('topContent');
+  if(topEl){
+    topEl.innerHTML = top.map((x,i)=>`<div class="rank">
+      <div><strong>${i+1}. ${escapeHtml(x.title)}</strong><br><span>${escapeHtml(x.category)} • ${escapeHtml(x.date)} • +${fmt(x.new_followers)} Follower</span></div>
+      <strong>${fmt(+x.if + +x.in)} interaksi</strong>
+    </div>`).join('') || '<div class="empty">Belum ada data.</div>';
+  }
+  const nf=t.v?t.vn/t.v*100:0;
+  const audEl = document.getElementById('audienceInsights');
+  if(audEl){
+    audEl.innerHTML = `<div class="insight">Viewers Followers: <b>${fmt(t.vf)}</b> (${t.v?(t.vf/t.v*100).toFixed(1):0}%)</div>
+      <div class="insight">Viewers Non-followers: <b>${fmt(t.vn)}</b> (${nf.toFixed(1)}%)</div>
+      <div class="insight">Total Penambahan Followers Baru: <b style="color:#16805b">+${fmt(t.fol)} Followers</b></div>
+      <div class="insight">Total Kunjungan Profil: <b>${fmt(t.vis)} kali</b></div>`;
+  }
+  const recEl = document.getElementById('recommendations');
+  if(recEl){
+    recEl.innerHTML = [
+      `Fokuskan konten edukasi kepemiluan pada kategori dengan interaksi tertinggi.`,
+      `Jadikan rasio non-followers dan penambahan follower baru sebagai tolok ukur efektivitas jangkauan sosialisasi.`,
+      `Gunakan format reels/video singkat untuk meningkatkan save dan share.`
+    ].map(x=>`<div class="insight">${x}</div>`).join('');
+  }
+}
+
+const MONTH_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function populateMonthOptions(){
+  const sel = document.getElementById('reportMonthSelect');
+  if(!sel) return;
+  const all = getData();
+  const months = new Set();
+  all.forEach(x => { if(x.date && x.date.length >= 7) months.add(x.date.slice(0,7)); });
+  months.add(new Date().toISOString().slice(0,7));
+  const sorted = Array.from(months).sort().reverse();
+  const cur = sel.value;
+  sel.innerHTML = sorted.map(ym => {
+    const [y, m] = ym.split('-');
+    return `<option value="${ym}">${MONTH_NAMES[parseInt(m,10)-1]} ${y}</option>`;
+  }).join('');
+  if(cur && sorted.includes(cur)) sel.value = cur;
+}
+
+function getMonthlyData(){
+  const sel = document.getElementById('reportMonthSelect');
+  const ym = sel ? sel.value : new Date().toISOString().slice(0,7);
+  return getData().filter(x => x.date && x.date.startsWith(ym)).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function renderMonthlyReport(){
+  const sel = document.getElementById('reportMonthSelect');
+  if(!sel || !sel.value) return;
+  const ym = sel.value;
+  const [y, m] = ym.split('-');
+  const monthName = `${MONTH_NAMES[parseInt(m,10)-1]} ${y}`;
+  document.getElementById('reportTitlePeriod').textContent = `LAPORAN KINERJA MEDIA SOSIAL INSTAGRAM — BULAN ${monthName.toUpperCase()}`;
+  document.getElementById('reportPrintTime').textContent = new Date().toLocaleString('id-ID');
+  document.getElementById('reportSignDate').textContent = `${new Date().getDate()} ${MONTH_NAMES[new Date().getMonth()]} ${new Date().getFullYear()}`;
+
+  const d = getMonthlyData(), t = totals(d);
+  document.getElementById('mPostCount').textContent = d.length;
+  document.getElementById('mViewers').textContent = fmt(t.v);
+  document.getElementById('mInteractions').textContent = fmt(t.i);
+  document.getElementById('mFollowers').textContent = '+' + fmt(t.fol);
+  document.getElementById('mVisits').textContent = fmt(t.vis);
+  document.getElementById('mER').textContent = (t.v ? (t.i/t.v*100).toFixed(2) : 0) + '%';
+
+  const mCat = {};
+  d.forEach(x=>{
+    const k=x.category; mCat[k] ??= {n:0,v:0,i:0,fol:0};
+    mCat[k].n++; mCat[k].v += +x.vf + +x.vn; mCat[k].i += +x.if + +x.in; mCat[k].fol += +x.new_followers;
+  });
+  document.getElementById('monthlyCatTable').innerHTML = Object.entries(mCat).sort((a,b)=>b[1].i-a[1].i).map(([k,v])=>`<tr>
+    <td><span class="pill">${escapeHtml(k)}</span></td>
+    <td>${v.n} postingan</td><td>${fmt(v.v)}</td><td>${fmt(v.i)}</td>
+    <td><b style="color:#16805b">+${fmt(v.fol)}</b></td><td>${v.v?(v.i/v.v*100).toFixed(2):0}%</td>
+  </tr>`).join('') || '<tr><td colspan="6" class="empty">Tidak ada postingan pada bulan ini.</td></tr>';
+
+  const top5 = [...d].sort((a,b)=>(+b.if + +b.in)-(+a.if + +a.in)).slice(0,5);
+  document.getElementById('monthlyTopList').innerHTML = top5.map((x,i)=>`<div class="rank">
+    <div><strong>${i+1}. ${escapeHtml(x.title)}</strong><br><span>${escapeHtml(x.category)} • Tanggal ${escapeHtml(x.date)} • Likes: ${fmt(x.likes)} • +${fmt(x.new_followers)} Follower</span></div>
+    <strong>${fmt(+x.if + +x.in)} Interaksi</strong>
+  </div>`).join('') || '<div class="empty">Tidak ada data.</div>';
+
+  document.getElementById('monthlyFullTable').innerHTML = d.map(x=>{
+    const v=+x.vf + +x.vn, ii=+x.if + +x.in, er=v ? ii/v*100 : 0;
+    return `<tr>
+      <td>${escapeHtml(x.date)}</td><td><span class="pill">${escapeHtml(x.category)}</span></td>
+      <td>${escapeHtml(x.title)}</td><td>${fmt(v)}</td><td>${fmt(ii)}</td>
+      <td>${fmt(x.likes)}</td><td>${fmt(x.comments)}</td><td>${fmt(x.shares)}</td>
+      <td><b style="color:#16805b">+${fmt(x.new_followers)}</b></td><td>${er.toFixed(2)}%</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" class="empty">Belum ada konten pada bulan yang dipilih.</td></tr>';
+}
+
+function exportMonthlyCSV(){
+  const d = getMonthlyData(), sel = document.getElementById('reportMonthSelect');
+  const ym = sel ? sel.value : 'Bulan';
+  if(!d.length){ alert('Tidak ada data pada bulan yang dipilih.'); return; }
+  const head=['Tanggal','Kategori','Judul Konten','Viewers Followers','Viewers Non-Followers','Total Viewers','Interactions Followers','Interactions Non-Followers','Total Interactions','Likes','Comments','Shares','Saves','Profile Visits','New Followers','Engagement Rate'];
+  const rows=d.map(x=>{
+    const v = +x.vf + +x.vn, ii = +x.if + +x.in, er = v ? (ii/v*100).toFixed(2) + '%' : '0%';
+    return [x.date, x.category, x.title, x.vf, x.vn, v, x.if, x.in, ii, x.likes, x.comments, x.shares, x.saves, x.visits, x.new_followers, er];
+  });
+  const csv='\ufeff'+[head,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`Rekap_Insight_KPU_Indramayu_${ym}.csv`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function exportCSV(){
+  const d=getData(); if(!d.length){ alert('Belum ada data.'); return; }
+  const head=['Tanggal','Kategori','Konten','Viewers Followers','Viewers Non-Followers','Interactions Followers','Interactions Non-Followers','Likes','Comments','Shares','Saves','Profile Visits','New Followers'];
+  const rows=d.map(x=>[x.date,x.category,x.title,x.vf,x.vn,x.if,x.in,x.likes,x.comments,x.shares,x.saves,x.visits,x.new_followers]);
+  const csv='\ufeff'+[head,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='Instagram_Insight_KPU_Indramayu_Semua.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('entryForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  if(!currentUser){ alert('Akses ditolak: Login sebagai petugas sebelum menyimpan data.'); toggleAuthModal(); return; }
+  if(!dbReady){ alert('Database belum terhubung.'); return; }
+  const q=id=>document.getElementById(id).value;
+  const row = {
+    date:q('date'), category:q('category'), title:q('title'),
+    vf:+q('vf'), vn:+q('vn'), if:+q('if'), in:+q('in'),
+    likes:+q('likes'), comments:+q('comments'), shares:+q('shares'), saves:+q('saves'), visits:+q('visits'),
+    new_followers:+q('new_followers')
+  };
+  let payload = toDbRow(row);
+  let res = await supabaseClient.from('instagram_insights').insert(payload).select().single();
+  if(res.error && res.error.message && res.error.message.includes('new_followers')){
+    delete payload.new_followers;
+    res = await supabaseClient.from('instagram_insights').insert(payload).select().single();
+  }
+  if(res.error){ alert('Data gagal disimpan: ' + res.error.message); return; }
+  const savedData = normalizeRow(res.data);
+  savedData.new_followers = row.new_followers;
+  cachedData.push(savedData);
+  e.target.reset();
+  document.getElementById('date').value = new Date().toISOString().slice(0,10);
+  populateMonthOptions();
+  renderAll();
+  alert('✓ Data konten berhasil disimpan ke database Supabase.');
+  showPage('dashboard');
+});
+
+async function deleteRow(id){
+  if(!currentUser){ alert('Hanya operator terotentikasi yang dapat menghapus data.'); return; }
+  if(!confirm('Hapus data ini dari database online?')) return;
+  const { error } = await supabaseClient.from('instagram_insights').delete().eq('id', id);
+  if(error){ alert('Data gagal dihapus: ' + error.message); return; }
+  cachedData = cachedData.filter(x => Number(x.id) !== Number(id));
+  renderAll();
+}
+
+async function clearData(){
+  if(!currentUser){ alert('Hanya operator yang dapat mereset data.'); return; }
+  if(!confirm('Hapus SELURUH data dashboard dari database online? Tindakan ini tidak dapat dibatalkan.')) return;
+  const { error } = await supabaseClient.from('instagram_insights').delete().not('id', 'is', null);
+  if(error){ alert('Data gagal dihapus: ' + error.message); return; }
+  cachedData = []; renderAll(); alert('Seluruh data berhasil dihapus.');
+}
+
+async function seedData(){
+  if(!currentUser){ alert('Hanya operator yang dapat membuat data contoh.'); return; }
+  if(!confirm('Tambahkan 30 data contoh ke database online?')) return;
+  const cats=['Sosialisasi','Berita Kegiatan','Pengumuman','Edukasi'];
+  const topics=['Sosialisasi Pemilih Pemula di SMAN 1','Rapat Pleno Terbuka KPU Indramayu','Pengumuman Syarat Calon Kepala Daerah','Edukasi Bahaya Hoaks Pemilu','Tips Cek DPT Online KPU','Koordinasi Bawaslu & Forkopimda','Pendidikan Pemilih Disabilitas'];
+  const rows=[];
+  for(let i=29;i>=0;i--){
+    const date=daysAgo(i), cat=cats[i%cats.length], base=700+(i*53)%900;
+    rows.push(toDbRow({
+      date, category:cat, title:topics[i%topics.length],
+      vf:Math.round(base*(.45+(i%4)*.06)), vn:Math.round(base*(.55+(i%5)*.08)),
+      if:Math.round(base*(.06+(i%3)*.018)), in:Math.round(base*(.025+(i%4)*.012)),
+      likes:Math.round(base*(.055+(i%3)*.01)), comments:Math.round(base*(.008+(i%2)*.004)),
+      shares:Math.round(base*(.012+(i%4)*.004)), saves:Math.round(base*(.01+(i%3)*.003)),
+      visits:Math.round(base*(.02+(i%3)*.006)), new_followers:Math.round(5 + (i%7)*4)
+    }));
+  }
+  const { data, error } = await supabaseClient.from('instagram_insights').insert(rows).select();
+  if(error){ alert('Data contoh gagal dibuat: ' + error.message); return; }
+  cachedData = cachedData.concat((data || []).map(normalizeRow));
+  populateMonthOptions(); renderAll(); alert('30 data contoh berhasil ditambahkan ke database.');
+}
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  const target = document.getElementById(id);
+  if(target) target.classList.add('active');
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));
+  document.getElementById('pageTitle').textContent={
+    dashboard:'Dashboard Insight Instagram', input:'Input Insight Konten',
+    data:'Data Insight 30 Hari', analysis:'Analisis & Rekomendasi', report:'Rekap Data & Analisis Bulanan'
+  }[id] || 'Dashboard Insight';
+  if(id==='dashboard'||id==='analysis'||id==='data') renderAll();
+  if(id==='report') renderMonthlyReport();
+}
+
+document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+document.getElementById('date').value=new Date().toISOString().slice(0,10);
+
+checkAuth();
+loadData();
+</script>
+</body>
 </html>
