@@ -155,7 +155,7 @@ button,input,select{font:inherit}
       <div class="auth-status" id="authStatusBox">
         <span id="authStatusLabel"><span class="status-dot"></span> Publik (Hanya Lihat)</span>
       </div>
-      <button class="btn" style="width:100%;justify-content:center" id="authBtn" onclick="toggleAuthModal()">
+      <button class="btn" style="width:100%;justify-content:center" id="authBtn">
         🔐 Login Petugas
       </button>
     </div>
@@ -279,7 +279,7 @@ button,input,select{font:inherit}
         <p style="color:var(--muted);font-size:13.5px;margin:0 0 20px;line-height:1.5">
           Untuk menjaga validitas data, Anda harus masuk sebagai petugas operator/admin KPU sebelum dapat menambahkan data.
         </p>
-        <button class="btn primary" onclick="toggleAuthModal()" style="padding:10px 20px">
+        <button class="btn primary" onclick="openAuthModal()" style="padding:10px 20px">
           Masuk Sebagai Petugas
         </button>
       </div>
@@ -552,7 +552,7 @@ button,input,select{font:inherit}
         <span style="font-size:20px">🔐</span>
         <h3 style="margin:0;color:var(--navy);font-size:17px">Login Petugas KPU</h3>
       </div>
-      <button onclick="toggleAuthModal()" style="border:0;background:transparent;cursor:pointer;font-size:22px;color:var(--muted);line-height:1;padding:0 4px">&times;</button>
+      <button onclick="closeAuthModal()" style="border:0;background:transparent;cursor:pointer;font-size:22px;color:var(--muted);line-height:1;padding:0 4px">&times;</button>
     </div>
     
     <p style="font-size:12px;color:var(--muted);margin:0 0 16px;line-height:1.4">
@@ -612,47 +612,64 @@ function updateAuthUI(){
   const thAksi = document.getElementById('thAksi');
 
   if(currentUser){
-    box.className = 'auth-status logged-in';
-    label.innerHTML = '<span class="status-dot"></span> Operator: ' + (currentUser.name || 'Faiz Firzatullah');
-    authBtn.innerHTML = '🚪 Logout';
-    authBtn.className = 'btn danger';
-    roleIndicator.className = 'pill green';
-    roleIndicator.textContent = 'Mode Operator';
-    adminButtons.style.display = 'flex';
-    inputLocked.style.display = 'none';
-    inputForm.style.display = 'block';
+    // Mode Petugas / Admin
+    if(box) box.className = 'auth-status logged-in';
+    if(label) label.innerHTML = '<span class="status-dot"></span> Operator: ' + (currentUser.name || 'Faiz Firzatullah');
+    if(authBtn){
+      authBtn.innerHTML = '🚪 Logout';
+      authBtn.className = 'btn danger';
+      authBtn.onclick = handleLogout;
+    }
+    if(roleIndicator){
+      roleIndicator.className = 'pill green';
+      roleIndicator.textContent = 'Mode Operator';
+    }
+    if(adminButtons) adminButtons.style.display = 'flex';
+    if(inputLocked) inputLocked.style.display = 'none';
+    if(inputForm) inputForm.style.display = 'block';
     if(thAksi) thAksi.style.display = 'table-cell';
   } else {
-    box.className = 'auth-status logged-out';
-    label.innerHTML = '<span class="status-dot"></span> Publik (Hanya Lihat)';
-    authBtn.innerHTML = '🔐 Login Petugas';
-    authBtn.className = 'btn';
-    roleIndicator.className = 'pill';
-    roleIndicator.textContent = 'Pengunjung (Read Only)';
-    adminButtons.style.display = 'none';
-    inputLocked.style.display = 'block';
-    inputForm.style.display = 'none';
+    // Mode Publik (Hanya Lihat)
+    if(box) box.className = 'auth-status logged-out';
+    if(label) label.innerHTML = '<span class="status-dot"></span> Publik (Hanya Lihat)';
+    if(authBtn){
+      authBtn.innerHTML = '🔐 Login Petugas';
+      authBtn.className = 'btn';
+      authBtn.onclick = openAuthModal;
+    }
+    if(roleIndicator){
+      roleIndicator.className = 'pill';
+      roleIndicator.textContent = 'Pengunjung (Read Only)';
+    }
+    if(adminButtons) adminButtons.style.display = 'none';
+    if(inputLocked) inputLocked.style.display = 'block';
+    if(inputForm) inputForm.style.display = 'none';
     if(thAksi) thAksi.style.display = 'none';
   }
   renderData();
 }
 
-function toggleAuthModal(){
-  if(currentUser){
-    if(confirm('Apakah Anda ingin keluar (Logout) dari akun petugas?')){
-      currentUser = null;
-      localStorage.removeItem('kpu_auth_session');
-      updateAuthUI();
-      alert('Anda telah keluar. Sekarang dalam mode Pengunjung (Hanya Lihat).');
-    }
-    return;
-  }
+function openAuthModal(){
   const modal = document.getElementById('authModal');
-  modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
-  if(modal.style.display === 'flex'){
-    setTimeout(() => {
-      document.getElementById('loginUsername')?.focus();
-    }, 100);
+  if(modal) modal.style.display = 'flex';
+  const errEl = document.getElementById('loginErrorMsg');
+  if(errEl) errEl.style.display = 'none';
+  setTimeout(() => {
+    document.getElementById('loginUsername')?.focus();
+  }, 100);
+}
+
+function closeAuthModal(){
+  const modal = document.getElementById('authModal');
+  if(modal) modal.style.display = 'none';
+}
+
+function handleLogout(){
+  if(confirm('Apakah Anda ingin keluar (Logout) dari akun petugas?')){
+    currentUser = null;
+    localStorage.removeItem('kpu_auth_session');
+    updateAuthUI();
+    alert('Anda telah keluar. Kembali ke mode Pengunjung (Hanya Lihat).');
   }
 }
 
@@ -687,14 +704,14 @@ function handleDirectLogin(e){
     };
     localStorage.setItem('kpu_auth_session', JSON.stringify(currentUser));
     updateAuthUI();
-    toggleAuthModal();
+    closeAuthModal();
     if(usernameInput) usernameInput.value = '';
     if(passwordInput) passwordInput.value = '';
     alert('✓ Berhasil login! Selamat datang, Faiz Firzatullah. Hak akses input & edit aktif.');
     showPage('input');
   } else {
     if(errorEl){
-      errorEl.textContent = 'ID atau Password salah! Pastikan ID: faizfirzatullah dan Password yang benar.';
+      errorEl.textContent = 'ID atau Password salah! Pastikan ID: faizfirzatullah dan Password: 789456123456789';
       errorEl.style.display = 'block';
     } else {
       alert('ID atau Password salah!');
@@ -1040,53 +1057,139 @@ function exportCSV(){
 
 document.getElementById('entryForm').addEventListener('submit', async e=>{
   e.preventDefault();
-  if(!currentUser){ alert('Akses ditolak: Login sebagai petugas sebelum menyimpan data.'); toggleAuthModal(); return; }
-  if(!dbReady){ alert('Database belum terhubung.'); return; }
-  const q=id=>document.getElementById(id).value;
-  const row = {
-    date:q('date'), category:q('category'), title:q('title'),
-    vf:+q('vf'), vn:+q('vn'), if:+q('if'), in:+q('in'),
-    likes:+q('likes'), comments:+q('comments'), shares:+q('shares'), saves:+q('saves'), visits:+q('visits'),
-    new_followers:+q('new_followers')
-  };
-  let payload = toDbRow(row);
-  let res = await supabaseClient.from('instagram_insights').insert(payload).select().single();
-  if(res.error && res.error.message && res.error.message.includes('new_followers')){
-    delete payload.new_followers;
-    res = await supabaseClient.from('instagram_insights').insert(payload).select().single();
+
+  if(!currentUser){
+    alert('Akses ditolak: Anda harus login sebagai petugas sebelum menyimpan data.');
+    openAuthModal();
+    return;
   }
-  if(res.error){ alert('Data gagal disimpan: ' + res.error.message); return; }
-  const savedData = normalizeRow(res.data);
-  savedData.new_followers = row.new_followers;
-  cachedData.push(savedData);
-  e.target.reset();
-  document.getElementById('date').value = new Date().toISOString().slice(0,10);
-  populateMonthOptions();
-  renderAll();
-  alert('✓ Data konten berhasil disimpan ke database Supabase.');
-  showPage('dashboard');
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn ? submitBtn.innerHTML : '💾 Simpan Data ke Supabase';
+  if(submitBtn){
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ Menyimpan ke Supabase...';
+  }
+
+  try {
+    const q=id=>document.getElementById(id).value;
+
+    const row = {
+      date: q('date'),
+      category: q('category'),
+      title: q('title'),
+      vf: +q('vf'),
+      vn: +q('vn'),
+      if: +q('if'),
+      in: +q('in'),
+      likes: +q('likes'),
+      comments: +q('comments'),
+      shares: +q('shares'),
+      saves: +q('saves'),
+      visits: +q('visits'),
+      new_followers: +q('new_followers')
+    };
+
+    let payload = toDbRow(row);
+
+    let res = await supabaseClient
+      .from('instagram_insights')
+      .insert(payload)
+      .select();
+
+    // Graceful Fallback jika kolom new_followers belum terbaca
+    if(res.error && res.error.message && res.error.message.toLowerCase().includes('new_followers')){
+      console.warn('Kolom new_followers belum terbaca, mencoba insert tanpa kolom tersebut...');
+      delete payload.new_followers;
+      res = await supabaseClient
+        .from('instagram_insights')
+        .insert(payload)
+        .select();
+    }
+
+    if(res.error){
+      console.error('Supabase error:', res.error);
+      alert('Data gagal disimpan ke database Supabase:\n' + res.error.message);
+      return;
+    }
+
+    const rowData = (res.data && res.data.length > 0) ? res.data[0] : (res.data || { ...payload, id: Date.now() });
+    const savedData = normalizeRow(rowData);
+    savedData.new_followers = row.new_followers;
+    cachedData.push(savedData);
+
+    e.target.reset();
+    document.getElementById('date').value = new Date().toISOString().slice(0,10);
+    populateMonthOptions();
+    renderAll();
+    alert('✓ Berhasil! Data konten telah tersimpan ke database online Supabase.');
+    showPage('dashboard');
+  } catch(err){
+    console.error('Error saat submit:', err);
+    alert('Terjadi kesalahan saat menyimpan data: ' + err.message);
+  } finally {
+    if(submitBtn){
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnText;
+    }
+  }
 });
 
 async function deleteRow(id){
-  if(!currentUser){ alert('Hanya operator terotentikasi yang dapat menghapus data.'); return; }
+  if(!currentUser){
+    alert('Hanya operator terotentikasi yang dapat menghapus data.');
+    return;
+  }
+
   if(!confirm('Hapus data ini dari database online?')) return;
-  const { error } = await supabaseClient.from('instagram_insights').delete().eq('id', id);
-  if(error){ alert('Data gagal dihapus: ' + error.message); return; }
+
+  const { error } = await supabaseClient
+    .from('instagram_insights')
+    .delete()
+    .eq('id', id);
+
+  if(error){
+    console.error(error);
+    alert('Data gagal dihapus: ' + error.message);
+    return;
+  }
+
   cachedData = cachedData.filter(x => Number(x.id) !== Number(id));
   renderAll();
 }
 
 async function clearData(){
-  if(!currentUser){ alert('Hanya operator yang dapat mereset data.'); return; }
+  if(!currentUser){
+    alert('Hanya operator yang dapat mereset data.');
+    return;
+  }
+
   if(!confirm('Hapus SELURUH data dashboard dari database online? Tindakan ini tidak dapat dibatalkan.')) return;
-  const { error } = await supabaseClient.from('instagram_insights').delete().not('id', 'is', null);
-  if(error){ alert('Data gagal dihapus: ' + error.message); return; }
-  cachedData = []; renderAll(); alert('Seluruh data berhasil dihapus.');
+
+  const { error } = await supabaseClient
+    .from('instagram_insights')
+    .delete()
+    .not('id', 'is', null);
+
+  if(error){
+    console.error(error);
+    alert('Data gagal dihapus: ' + error.message);
+    return;
+  }
+
+  cachedData = [];
+  renderAll();
+  alert('Seluruh data berhasil dihapus.');
 }
 
 async function seedData(){
-  if(!currentUser){ alert('Hanya operator yang dapat membuat data contoh.'); return; }
+  if(!currentUser){
+    alert('Hanya operator yang dapat membuat data contoh.');
+    return;
+  }
+
   if(!confirm('Tambahkan 30 data contoh ke database online?')) return;
+
   const cats=['Sosialisasi','Berita Kegiatan','Pengumuman','Edukasi'];
   const topics=['Sosialisasi Pemilih Pemula di SMAN 1','Rapat Pleno Terbuka KPU Indramayu','Pengumuman Syarat Calon Kepala Daerah','Edukasi Bahaya Hoaks Pemilu','Tips Cek DPT Online KPU','Koordinasi Bawaslu & Forkopimda','Pendidikan Pemilih Disabilitas'];
   const rows=[];
@@ -1101,6 +1204,7 @@ async function seedData(){
       visits:Math.round(base*(.02+(i%3)*.006)), new_followers:Math.round(5 + (i%7)*4)
     }));
   }
+
   const { data, error } = await supabaseClient.from('instagram_insights').insert(rows).select();
   if(error){ alert('Data contoh gagal dibuat: ' + error.message); return; }
   cachedData = cachedData.concat((data || []).map(normalizeRow));
